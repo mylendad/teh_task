@@ -1,5 +1,7 @@
-from fastapi import HTTPException, status
 from typing import Optional
+
+from fastapi import HTTPException, status
+
 
 class ShortenerException(HTTPException):
     status_code = 500
@@ -12,18 +14,22 @@ class ShortenerException(HTTPException):
             self.detail = detail
         super().__init__(status_code=self.status_code, detail=self.detail)
 
+
 class ShortUrlCreatedException(ShortenerException):
     status_code = status.HTTP_201_CREATED
     detail = "Short URL created successfully"
+
 
 class ShortUrlRedirectException(ShortenerException):
     status_code = status.HTTP_302_FOUND
     detail = "Redirecting to original URL"
 
+
 class ShortCodeCollisionException(ShortenerException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     detail = "Failed to generate unique short code"
 
+
 class ShortUrlNotFoundException(ShortenerException):
     status_code = status.HTTP_404_NOT_FOUND
-    detail = "Short URL not found"
+    detail = "Короткий URL не найден"

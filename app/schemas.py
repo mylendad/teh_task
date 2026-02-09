@@ -17,7 +17,6 @@ class URLInfo(URLBase):
     code: str
 
     model_config = ConfigDict(
-        from_attributes=True,  # позволяет Pydantic напрямую сопоставлять атрибуты этих объектов sqlite3.Row с полями схемы Pydantic, без необходимости предварительного преобразования   █
-        # объекта sqlite3.Row в словарь. Это делает процесс более эффективным и удобным.
+        from_attributes=True,
         populate_by_name=True,
     )
