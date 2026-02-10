@@ -1,20 +1,28 @@
-import sqlite3
 import logging
+import sqlite3
 
 from app.config import settings
 
 DATABASE_FILE = settings.database_file
 
 
-def get_db_connection():
-    """Устанавливает соединение с базой данных SQLite."""
+def get_db():
+    """
+    Создает зависимость (dependency) для получения сессии базы данных.
+    Гарантирует, что соединение с базой данных будет закрыто после использования.
+    """
     conn = sqlite3.connect(DATABASE_FILE)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        yield conn
+    finally:
+        conn.close()
+
 
 def create_table():
     """Создает таблицу 'urls', если она не существует."""
-    conn = get_db_connection()
+    # Используем прямое соединение, так как это разовая операция при старте
+    conn = sqlite3.connect(DATABASE_FILE)
     try:
         conn.execute(
             """
@@ -30,6 +38,7 @@ def create_table():
         logging.error(f"Ошибка базы данных: {e}")
     finally:
         conn.close()
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
