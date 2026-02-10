@@ -1,16 +1,19 @@
-import pytest
-from httpx import AsyncClient, ASGITransport
-from app.main import app
-from app.database import get_db_connection, create_table
 import os
 
+import pytest
+from app.database import create_table
+from app.main import app
+from httpx import ASGITransport, AsyncClient
+
 DATABASE_FILE = "test_shortener.db"
+
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_database():
     """Настройка тестовой базы данных."""
     # Переопределяем файл базы данных
     import app.database
+
     app.database.DATABASE_FILE = DATABASE_FILE
     create_table()
     yield
@@ -19,49 +22,73 @@ def setup_database():
 
 @pytest.mark.asyncio
 async def test_create_short_url():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.post("/shorten", json={"original_url": "https://example.com"})
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.post(
+            "/shorten", json={"original_url": "https://example.com"}
+        )
     assert response.status_code == 200
     data = response.json()
     assert "code" in data
     assert data["original_url"] == "https://example.com/"
 
+
 @pytest.mark.asyncio
 async def test_redirect_to_original_url():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         # Сначала создаем короткий URL
-        response = await ac.post("/shorten", json={"original_url": "https://example.com/test-redirect"})
+        response = await ac.post(
+            "/shorten", json={"original_url": "https://example.com/test-redirect"}
+        )
         assert response.status_code == 200
         code = response.json()["code"]
 
         # Теперь тестируем перенаправление
         redirect_response = await ac.get(f"/{code}", follow_redirects=False)
         assert redirect_response.status_code == 307
-        assert redirect_response.headers["location"] == "https://example.com/test-redirect"
+        assert (
+            redirect_response.headers["location"] == "https://example.com/test-redirect"
+        )
+
 
 @pytest.mark.asyncio
 async def test_short_url_not_found():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         response = await ac.get("/nonexistentcode")
     assert response.status_code == 404
     assert response.json() == {"detail": "Короткий URL не найден"}
 
+
 @pytest.mark.asyncio
 async def test_invalid_url():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         response = await ac.post("/shorten", json={"original_url": "not-a-url"})
-    assert response.status_code == 422 # Ошибка валидации Pydantic
+    assert response.status_code == 422  # Ошибка валидации Pydantic
+
 
 @pytest.mark.asyncio
 async def test_update_short_url():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         # Сначала создаем короткий URL
-        response = await ac.post("/shorten", json={"original_url": "https://example.com/to-be-updated"})
+        response = await ac.post(
+            "/shorten", json={"original_url": "https://example.com/to-be-updated"}
+        )
         assert response.status_code == 200
         code = response.json()["code"]
 
         # Теперь обновляем его
-        update_response = await ac.put(f"/{code}", json={"original_url": "https://example.com/updated"})
+        update_response = await ac.put(
+            f"/{code}", json={"original_url": "https://example.com/updated"}
+        )
         assert update_response.status_code == 200
         assert update_response.json()["original_url"] == "https://example.com/updated"
 
@@ -70,18 +97,28 @@ async def test_update_short_url():
         assert redirect_response.status_code == 307
         assert redirect_response.headers["location"] == "https://example.com/updated"
 
+
 @pytest.mark.asyncio
 async def test_update_nonexistent_short_url():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        response = await ac.put("/nonexistentcode", json={"original_url": "https://example.com"})
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.put(
+            "/nonexistentcode", json={"original_url": "https://example.com"}
+        )
     assert response.status_code == 404
     assert response.json() == {"detail": "Короткий URL не найден"}
 
+
 @pytest.mark.asyncio
 async def test_delete_short_url():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         # Сначала создаем короткий URL
-        response = await ac.post("/shorten", json={"original_url": "https://example.com/to-be-deleted"})
+        response = await ac.post(
+            "/shorten", json={"original_url": "https://example.com/to-be-deleted"}
+        )
         assert response.status_code == 200
         code = response.json()["code"]
 
@@ -94,9 +131,12 @@ async def test_delete_short_url():
         redirect_response = await ac.get(f"/{code}")
         assert redirect_response.status_code == 404
 
+
 @pytest.mark.asyncio
 async def test_delete_nonexistent_short_url():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         response = await ac.delete("/nonexistentcode")
     assert response.status_code == 404
     assert response.json() == {"detail": "Короткий URL не найден"}
